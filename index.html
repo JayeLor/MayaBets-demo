@@ -1,21 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>MayaBets – Deposit</title>
+  <title>MayaBets — Crypto Deposit</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: Arial; background:#020617; color:#e5e7eb; padding:20px; }
-    .card { max-width:420px; margin:auto; background:#0f172a; padding:20px; border-radius:12px; }
+    body {
+      font-family: Arial, sans-serif;
+      background:#020617;
+      color:#e5e7eb;
+      padding:20px;
+    }
+    .container {
+      max-width:520px;
+      margin:auto;
+      background:#0f172a;
+      padding:20px;
+      border-radius:14px;
+    }
     h1 { color:#38bdf8; }
-    button { width:100%; padding:12px; margin-top:15px; background:#22c55e; border:none; font-weight:bold; cursor:pointer; }
-    .box { background:#020617; padding:10px; border-radius:8px; margin-top:10px; word-break:break-all; }
+    label { display:block; margin-top:12px; }
+    select, input, button {
+      width:100%;
+      padding:12px;
+      margin-top:6px;
+      border:none;
+      border-radius:8px;
+    }
+    button {
+      background:#22c55e;
+      font-weight:bold;
+      cursor:pointer;
+      margin-top:15px;
+      color:black;
+    }
+    .box {
+      background:#020617;
+      border:1px solid #334155;
+      padding:14px;
+      border-radius:10px;
+      margin-top:15px;
+      word-break:break-all;
+    }
+    .status { font-weight:bold; margin-top:10px; }
+    .powered {
+      margin-top:15px;
+      font-size:12px;
+      text-align:center;
+      color:#94a3b8;
+    }
+    code {
+      background:black;
+      padding:10px;
+      display:block;
+      color:#22c55e;
+      border-radius:6px;
+    }
   </style>
 </head>
 
 <body>
-<div class="card">
+
+<div class="container">
   <h1>MayaBets</h1>
-  <p>Deposit via <strong>LittleCPay</strong></p>
+  <p>Deposit funds via <strong>LittleCPay</strong></p>
+
+  <label>Amount (USDT)</label>
+  <input id="amount" value="100" disabled>
 
   <label>Network</label>
   <select id="network">
@@ -25,30 +75,35 @@
 
   <button onclick="createDeposit()">Proceed to Pay</button>
 
+  <!-- PAYMENT BOX -->
   <div id="paymentBox" style="display:none;">
     <div class="box">
+      <strong>Merchant:</strong> MayaBets<br>
       <strong>Amount:</strong> 100 USDT<br>
-      <strong>Network:</strong> <span id="net"></span><br>
-      <strong>Address:</strong><br>
-      <span id="address"></span>
+      <strong>Network:</strong> <span id="showNetwork"></span><br><br>
+
+      <strong>Deposit Address</strong>
+      <code id="address"></code>
     </div>
 
-    <p>Status: <span id="status">Waiting</span></p>
+    <p class="status">Status: <span id="status">Waiting</span></p>
     <p>Expires in: <span id="timer">15:00</span></p>
 
     <button onclick="simulatePayment()">I Have Paid</button>
   </div>
 
-  <p style="text-align:center;font-size:12px;color:#64748b;">
-    Powered by LittleCPay
-  </p>
+  <div class="powered">
+    Powered by <strong>LittleCPay</strong>
+  </div>
 </div>
 
 <script>
-let countdown, seconds = 900;
 let deposit = {};
+let countdown, seconds = 900;
 
 function createDeposit() {
+  const network = document.getElementById("network").value;
+
   deposit = {
     gateway: "LittleCPay",
     merchant: "MayaBets",
@@ -56,8 +111,10 @@ function createDeposit() {
     deposit_id: "dep_" + Date.now(),
     amount: "100",
     asset: "USDT",
-    network: document.getElementById("network").value,
-    address: "T" + Math.random().toString(36).substring(2, 35),
+    network,
+    address:
+      (network === "TRC20" ? "T" : "0x") +
+      Math.random().toString(36).substring(2, 35),
     status: "waiting",
     created_at: new Date().toISOString()
   };
@@ -67,8 +124,11 @@ function createDeposit() {
   localStorage.setItem("littlecpay_deposits", JSON.stringify(deposits));
 
   document.getElementById("paymentBox").style.display = "block";
-  document.getElementById("net").innerText = deposit.network;
+  document.getElementById("showNetwork").innerText = network;
   document.getElementById("address").innerText = deposit.address;
+  document.getElementById("status").innerText = "Waiting";
+
+  console.log("LittleCPay API → deposit.created", deposit);
 
   startTimer();
 }
@@ -81,6 +141,7 @@ function startTimer() {
     let m = Math.floor(seconds / 60);
     let s = (seconds % 60).toString().padStart(2, "0");
     document.getElementById("timer").innerText = `${m}:${s}`;
+
     if (seconds <= 0) {
       clearInterval(countdown);
       document.getElementById("status").innerText = "Expired";
@@ -101,8 +162,10 @@ function simulatePayment() {
   document.getElementById("status").innerText = "Confirmed";
   clearInterval(countdown);
 
-  alert("Payment confirmed. Merchant notified via LittleCPay.");
+  console.log("LittleCPay Webhook → deposit.confirmed", deposits[i]);
+  alert("Payment confirmed. MayaBets wallet credited.");
 }
 </script>
+
 </body>
 </html>
