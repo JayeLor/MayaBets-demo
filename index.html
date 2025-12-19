@@ -1,156 +1,185 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>BetFast — Crypto Deposit</title>
+  <meta charset="UTF-8">
+  <title>MayaBets – Deposit via LittleCPay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #0b1220, #020617);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
       background: #0f172a;
-      color: white;
+      max-width: 420px;
+      width: 100%;
+      border-radius: 12px;
       padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
     }
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background: #020617;
-      padding: 20px;
-      border-radius: 10px;
-    }
+
     h1 {
+      margin: 0;
       color: #38bdf8;
     }
+
+    p {
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
     label {
       display: block;
-      margin-top: 10px;
+      margin-top: 15px;
+      font-weight: bold;
     }
+
     input, select, button {
       width: 100%;
-      padding: 10px;
-      margin-top: 6px;
+      padding: 12px;
       border-radius: 6px;
       border: none;
+      margin-top: 6px;
+      font-size: 15px;
     }
+
     button {
       background: #22c55e;
-      color: black;
+      color: #022c22;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 15px;
-    }
-    .payment-box {
-      background: #020617;
-      border: 1px solid #334155;
-      padding: 15px;
       margin-top: 20px;
-      border-radius: 8px;
-      display: none;
     }
-    code {
-      background: black;
-      padding: 10px;
-      display: block;
-      margin-top: 5px;
-      color: #22c55e;
+
+    button.secondary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .box {
+      background: #020617;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-size: 14px;
       word-break: break-all;
     }
+
     .status {
       margin-top: 10px;
       font-weight: bold;
     }
-    .powered {
-      margin-top: 15px;
-      font-size: 12px;
-      color: #94a3b8;
+
+    .footer {
       text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #64748b;
     }
   </style>
 </head>
 
 <body>
 
-<div class="container">
-  <h1>BetFast</h1>
+<div class="card">
+  <h1>MayaBets</h1>
   <p>Deposit funds to your betting wallet</p>
 
-  <!-- DEPOSIT FORM -->
+  <!-- STEP 1 -->
   <label>Amount (USDT)</label>
-  <input id="amount" value="100" disabled>
+  <input type="number" value="100" disabled>
 
   <label>Network</label>
   <select id="network">
-    <option>TRC20</option>
-    <option>BEP20</option>
+    <option value="TRC20">TRC20</option>
+    <option value="BEP20">BEP20</option>
   </select>
 
-  <button onclick="proceedToPay()">Proceed to Pay</button>
+  <button onclick="createDeposit()">Proceed to Pay</button>
 
-  <!-- PAYMENT SCREEN -->
-  <div class="payment-box" id="paymentBox">
+  <!-- STEP 2 -->
+  <div id="paymentBox" style="display:none;">
     <h3>Send Crypto</h3>
-    <p><strong>Amount:</strong> <span id="showAmount"></span> USDT</p>
-    <p><strong>Network:</strong> <span id="showNetwork"></span></p>
 
-    <p><strong>Deposit Address</strong></p>
-    <code id="address">—</code>
+    <div class="box">
+      <strong>Amount:</strong> 100 USDT<br>
+      <strong>Network:</strong> <span id="net"></span><br><br>
+      <strong>Deposit Address</strong><br>
+      <span id="address"></span>
+    </div>
 
     <p class="status">Status: <span id="status">Waiting for payment</span></p>
+    <p>Expires in: <strong><span id="timer">15:00</span></strong></p>
 
-    <button onclick="simulatePayment()">I Have Paid</button>
+    <button class="secondary" onclick="simulatePayment()">I Have Paid</button>
   </div>
 
-  <div class="powered">
+  <div class="footer">
     Powered by <strong>LittleCPay</strong>
   </div>
 </div>
 
 <script>
-let depositId = "";
+let countdown;
+let seconds = 900;
+let deposit = {};
 
-function proceedToPay() {
-  const amount = document.getElementById("amount").value;
-  const network = document.getElementById("network").value;
+function createDeposit() {
+  deposit = {
+    gateway: "LittleCPay",
+    merchant: "MayaBets",
+    deposit_id: "dep_" + Math.floor(Math.random() * 100000),
+    amount: "100",
+    asset: "USDT",
+    network: document.getElementById("network").value,
+    address: "T" + Math.random().toString(36).substring(2, 35),
+    status: "waiting"
+  };
 
-  // Simulated LittleCPay API response
-  depositId = "dep_" + Math.floor(Math.random() * 100000);
-
-  const address =
-    (network === "TRC20" ? "T" : "0x") +
-    Math.random().toString(36).substring(2, 35);
+  localStorage.setItem("littlecpay_deposit", JSON.stringify(deposit));
 
   document.getElementById("paymentBox").style.display = "block";
-  document.getElementById("showAmount").innerText = amount;
-  document.getElementById("showNetwork").innerText = network;
-  document.getElementById("address").innerText = address;
+  document.getElementById("net").innerText = deposit.network;
+  document.getElementById("address").innerText = deposit.address;
   document.getElementById("status").innerText = "Waiting for payment";
 
-  console.log("LittleCPay API → deposit.created", {
-    gateway: "LittleCPay",
-    merchant_id: "betfast_demo",
-    customer_id: "user_83922",
-    deposit_id: depositId,
-    amount,
-    network
-  });
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(countdown);
+  seconds = 900;
+
+  countdown = setInterval(() => {
+    seconds--;
+    let m = Math.floor(seconds / 60);
+    let s = (seconds % 60).toString().padStart(2, "0");
+    document.getElementById("timer").innerText = `${m}:${s}`;
+
+    if (seconds <= 0) {
+      clearInterval(countdown);
+      document.getElementById("status").innerText = "Expired";
+    }
+  }, 1000);
 }
 
 function simulatePayment() {
-  document.getElementById("status").innerText = "Payment detected";
+  deposit.status = "confirmed";
+  deposit.txid = "0x" + Math.random().toString(16).substring(2, 66);
+  deposit.confirmations = 1;
 
-  setTimeout(() => {
-    document.getElementById("status").innerText = "Payment confirmed";
+  localStorage.setItem("littlecpay_deposit", JSON.stringify(deosit));
 
-    console.log("LittleCPay Webhook → deposit.confirmed", {
-      gateway: "LittleCPay",
-      event: "deposit.confirmed",
-      merchant_id: "betfast_demo",
-      customer_id: "user_83922",
-      deposit_id: depositId,
-      amount: "100",
-      network: document.getElementById("network").value,
-      txid: "0x" + Math.random().toString(16).substring(2, 66),
-      confirmations: 1
-    });
-  }, 3000);
+  document.getElementById("status").innerText = "Payment confirmed";
+  clearInterval(countdown);
+
+  alert("Payment confirmed.\nMayaBets wallet will be credited.");
 }
 </script>
 
